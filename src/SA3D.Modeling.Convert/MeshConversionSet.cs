@@ -18,6 +18,20 @@ namespace SA3D.Modeling.Convert
 		public List<MeshConversionInfo> MeshInfo { get; set; } = [];
 
 		/// <summary>
+		/// Creates a new, empty mesh conversion set
+		/// </summary>
+		public MeshConversionSet() { }
+
+		/// <summary>
+		/// Creates a mesh conversion set from existing meshes
+		/// </summary>
+		/// <param name="meshes"></param>
+		public MeshConversionSet(IEnumerable<MeshConversionInfo> meshes)
+		{
+			MeshInfo = [.. meshes];
+		}
+
+		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="model"></param>

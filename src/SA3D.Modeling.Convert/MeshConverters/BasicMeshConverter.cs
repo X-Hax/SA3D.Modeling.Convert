@@ -80,22 +80,22 @@ namespace SA3D.Modeling.Convert.MeshConverters
 						Specular = material.SpecularColor,
 						SpecularExponent = material.SpecularExponent,
 						TextureIndex = material.TextureID,
-						TextureFiltering = material.FilterMode,
+						TextureFilterMode = material.FilterMode,
 						MipmapDistanceMultiplier = material.MipmapDistanceMultiplier,
 						SourceBlendMode = material.SourceAlpha,
-						DestinationBlendmode = material.DestinationAlpha,
+						DestinationBlendMode = material.DestinationAlpha,
 						AlphaMode = material.UseAlpha ? AlphaMode.Transparent : AlphaMode.Opaque,
-						BackfaceCulling = !material.DoubleSided,
+						DoubleSided = material.DoubleSided,
 						UseTexture = material.UseTexture,
 						AnisotropicFiltering = material.SuperSample,
 						ClampU = material.ClampU,
 						ClampV = material.ClampV,
 						MirrorU = material.MirrorU,
 						MirrorV = material.MirrorV,
-						NormalMapping = material.EnvironmentMap,
-						NoLighting = material.IgnoreLighting,
-						NoSpecular = material.IgnoreSpecular,
-						Flat = material.FlatShading,
+						EnvironmentMapping = material.EnvironmentMap,
+						IgnoreLighting = material.IgnoreLighting,
+						IgnoreSpecular = material.IgnoreSpecular,
+						FlatShading = material.FlatShading,
 					});
 				}
 			}
@@ -199,7 +199,6 @@ namespace SA3D.Modeling.Convert.MeshConverters
 		protected override MeshConversionInfo[] ConvertToWeighted()
 		{
 			List<MeshConversionInfo> result = [];
-			Dictionary<BasicMesh, MeshConversionInfo?> converted = [];
 
 			for(int i = 0; i < NodeWorldMatrices.Length; i++)
 			{
@@ -210,21 +209,12 @@ namespace SA3D.Modeling.Convert.MeshConverters
 					continue;
 				}
 
-				if(node.Welding != null || !converted.TryGetValue(mesh, out MeshConversionInfo? info))
+				if(ConvertMeshToWeighted(mesh) is MeshConversionInfo info)
 				{
-					info = ConvertMeshToWeighted(mesh);
-					converted.Add(mesh, info);
+					info.AttachedNodeIndex = i;
 
-					if(info != null)
-					{
-						ConvertWelding(info, i);
-						result.Add(info);
-					}
-				}
-
-				if(info != null)
-				{
-					_ = info.AttachedNodeIndices.Add(i);
+					ConvertWelding(info, i);
+					result.Add(info);
 				}
 			}
 

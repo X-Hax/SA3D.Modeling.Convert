@@ -1,7 +1,6 @@
 ﻿
 using SA3D.Modeling.Convert.Weighted;
 using SA3D.Modeling.Mesh.Chunk;
-using System.Collections.Generic;
 
 namespace SA3D.Modeling.Convert
 {
@@ -16,9 +15,9 @@ namespace SA3D.Modeling.Convert
 		public WeightedMesh Mesh { get; set; }
 
 		/// <summary>
-		/// Nodes at which the mesh is attached
+		/// Index to the node at which the mesh is attached
 		/// </summary>
-		public HashSet<int> AttachedNodeIndices { get; set; }
+		public int AttachedNodeIndex { get; set; }
 
 
 		/// <summary>
@@ -59,20 +58,7 @@ namespace SA3D.Modeling.Convert
 		public MeshConversionInfo(WeightedMesh mesh)
 		{
 			Mesh = mesh;
-			AttachedNodeIndices = [];
 		}
-
-		/// <summary>
-		/// Initializes a new instance of the <see cref="MeshConversionInfo"/> class with a mesh and attached node indices
-		/// </summary>
-		/// <param name="mesh"></param>
-		/// <param name="attachedNodeIndices"></param>
-		public MeshConversionInfo(WeightedMesh mesh, IEnumerable<int> attachedNodeIndices)
-		{
-			Mesh = mesh;
-			AttachedNodeIndices = [.. attachedNodeIndices];
-		}
-
 
 		/// <inheritdoc/>
 		public override string ToString()

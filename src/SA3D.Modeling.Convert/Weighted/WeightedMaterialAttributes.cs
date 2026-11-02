@@ -27,7 +27,7 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// <summary>
 		/// Enables backface culling.
 		/// </summary>
-		BackfaceCulling = Flag16.B2,
+		DoubleSided = Flag16.B2,
 
 		/// <summary>
 		/// Whether textures should be rendered.

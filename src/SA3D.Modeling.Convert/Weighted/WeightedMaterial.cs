@@ -21,14 +21,12 @@ namespace SA3D.Modeling.Convert.Weighted
 			Ambient = Color.ColorWhite,
 			MipmapDistanceMultiplier = 1,
 			SourceBlendMode = BlendMode.SrcAlpha,
-			DestinationBlendmode = BlendMode.SrcAlphaInverted,
-			TextureFiltering = FilterMode.Bilinear,
+			DestinationBlendMode = BlendMode.SrcAlphaInverted,
+			TextureFilterMode = FilterMode.Bilinear,
 			UseTexture = true,
 
 			GinjaTevStageParameter = GinjaTevStageParameter.DefaultValues,
 			GinjaTexGenParameter = GinjaTexGenParameter.DefaultValues,
-			GinjaTevStageCount = 1,
-			GinjaTexGenCount = 1,
 			GinjaUseVertexColorForDiffuse = true
 		};
 
@@ -62,7 +60,7 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// <summary>
 		/// Texture filtering mode.
 		/// </summary>
-		public FilterMode TextureFiltering { readonly get; set; }
+		public FilterMode TextureFilterMode { readonly get; set; }
 
 		/// <summary>
 		/// Mipmap distance multiplier.
@@ -77,7 +75,7 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// <summary>
 		/// Destination blend mode.
 		/// </summary>
-		public BlendMode DestinationBlendmode { readonly get; set; }
+		public BlendMode DestinationBlendMode { readonly get; set; }
 
 		/// <summary>
 		/// Additional Material attributes.
@@ -95,21 +93,6 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// </summary>
 		public byte TexcoordPrecisionLevel { get; set; }
 
-		/// <summary>
-		/// Additional ginja attributes (see <see cref="GinjaStripFlagsParameter"/>)
-		/// </summary>
-		public ushort GinjaAttributes { readonly get; set; }
-
-		/// <summary>
-		/// Ginja tev stage parameter container
-		/// </summary>
-		public GinjaTevStageParameter GinjaTevStageParameter { readonly get; set; }
-
-		/// <summary>
-		/// Ginja tex gen parameter container
-		/// </summary>
-		public GinjaTexGenParameter GinjaTexGenParameter { readonly get; set; }
-
 		#endregion
 
 		#region Attribute Properties
@@ -125,13 +108,13 @@ namespace SA3D.Modeling.Convert.Weighted
 		}
 
 		/// <summary>
-		/// Enables backface culling.
+		/// Disables backface culling.
 		/// <br/> Wrapper around flag in <see cref="Attributes"/>.
 		/// </summary>
-		public bool BackfaceCulling
+		public bool DoubleSided
 		{
-			readonly get => HasAttributes(WeightedMaterialAttributes.BackfaceCulling);
-			set => SetAttributes(WeightedMaterialAttributes.BackfaceCulling, value);
+			readonly get => HasAttributes(WeightedMaterialAttributes.DoubleSided);
+			set => SetAttributes(WeightedMaterialAttributes.DoubleSided, value);
 		}
 
 		/// <summary>
@@ -198,7 +181,7 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// Whether to use normal mapping for textures.
 		/// <br/> Wrapper around flag in <see cref="Attributes"/>.
 		/// </summary>
-		public bool NormalMapping
+		public bool EnvironmentMapping
 		{
 			readonly get => HasAttributes(WeightedMaterialAttributes.NormalMapping);
 			set => SetAttributes(WeightedMaterialAttributes.NormalMapping, value);
@@ -208,7 +191,7 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// Ignores lighting as a whole.
 		/// <br/> Wrapper around flag in <see cref="Attributes"/>.
 		/// </summary>
-		public bool NoLighting
+		public bool IgnoreLighting
 		{
 			readonly get => HasAttributes(WeightedMaterialAttributes.NoLighting);
 			set => SetAttributes(WeightedMaterialAttributes.NoLighting, value);
@@ -218,7 +201,7 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// Ignores ambient lighting.
 		/// <br/> Wrapper around flag in <see cref="Attributes"/>.
 		/// </summary>
-		public bool NoAmbient
+		public bool IgnoreAmbient
 		{
 			readonly get => HasAttributes(WeightedMaterialAttributes.NoAmbient);
 			set => SetAttributes(WeightedMaterialAttributes.NoAmbient, value);
@@ -228,7 +211,7 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// Ignores specular lighting.
 		/// <br/> Wrapper around flag in <see cref="Attributes"/>.
 		/// </summary>
-		public bool NoSpecular
+		public bool IgnoreSpecular
 		{
 			readonly get => HasAttributes(WeightedMaterialAttributes.NoSpecular);
 			set => SetAttributes(WeightedMaterialAttributes.NoSpecular, value);
@@ -238,7 +221,7 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// Ignores interpolated normals and instead renders every polygon flat.
 		/// <br/> Wrapper around flag in <see cref="Attributes"/>.
 		/// </summary>
-		public bool Flat
+		public bool FlatShading
 		{
 			readonly get => HasAttributes(WeightedMaterialAttributes.Flat);
 			set => SetAttributes(WeightedMaterialAttributes.Flat, value);
@@ -249,61 +232,29 @@ namespace SA3D.Modeling.Convert.Weighted
 		#region Gamecube Properties
 
 		/// <summary>
-		/// Number of output channels to be used.
-		/// <br/> Ranges from 0 - 2
-		/// </summary>
-		public byte GinjaChannelCount
-		{
-			readonly get => (byte)(GinjaAttributes & 0x3);
-			set => GinjaAttributes = (ushort)((GinjaAttributes & ~0x3u) | byte.Clamp(value, 0, 2));
-		}
-
-		/// <summary>
-		/// Number of <see cref="GinjaTexGenParameter"/> used.
-		/// <br/> Ranges from 0 - 15
-		/// </summary>
-		public byte GinjaTexGenCount
-		{
-			readonly get => (byte)((GinjaAttributes >> 2) & 0xF);
-			set => GinjaAttributes = (ushort)((GinjaAttributes & ~0x3Cu) | (ushort)(byte.Clamp(value, 0, 15) << 2));
-		}
-
-		/// <summary>
-		/// Number of TevStages used.
-		/// <br/> Ranges from 0 - 15
-		/// </summary>
-		public byte GinjaTevStageCount
-		{
-			readonly get => (byte)((GinjaAttributes >> 6) & 0xF);
-			set => GinjaAttributes = (ushort)((GinjaAttributes & ~0x3C0u) | (ushort)(byte.Clamp(value, 0, 15) << 6));
-		}
-
-		/// <summary>
 		/// Use vertex colors for diffuse color, instead of <see cref="Diffuse"/>
 		/// </summary>
-		public bool GinjaUseVertexColorForDiffuse
-		{
-			readonly get => (GinjaAttributes & 0x400) != 0;
-			set => GinjaAttributes = (ushort)((GinjaAttributes & ~0x400u) | (ushort)(value ? 0x400 : 0));
-		}
+		public bool GinjaUseVertexColorForDiffuse { readonly get; set; }
 
 		/// <summary>
 		/// Use vertex colors for ambient color, instead of <see cref="Ambient"/>
 		/// </summary>
-		public bool GinjaUseVertexColorForAmbient
-		{
-			readonly get => (GinjaAttributes & 0x800) != 0;
-			set => GinjaAttributes = (ushort)((GinjaAttributes & ~0x800u) | (ushort)(value ? 0x800 : 0));
-		}
+		public bool GinjaUseVertexColorForAmbient { readonly get; set; }
 
 		/// <summary>
 		/// Ginja texture slot to use
 		/// </summary>
-		public byte GinjaTextureSlot
-		{
-			readonly get => (byte)((GinjaAttributes >> 12) & 3);
-			set => GinjaAttributes = (ushort)((GinjaAttributes & ~0x3000u) | (ushort)(ushort.Clamp(value, 0, 3) << 12));
-		}
+		public byte GinjaTextureSlot { readonly get; set; }
+
+		/// <summary>
+		/// Ginja tev stage parameter container
+		/// </summary>
+		public GinjaTevStageParameter GinjaTevStageParameter { readonly get; set; }
+
+		/// <summary>
+		/// Ginja tex gen parameter container
+		/// </summary>
+		public GinjaTexGenParameter GinjaTexGenParameter { readonly get; set; }
 
 		#endregion
 
@@ -323,15 +274,17 @@ namespace SA3D.Modeling.Convert.Weighted
 			SpecularExponent = template.SpecularExponent;
 			Ambient = template.Ambient;
 			TextureIndex = template.TextureIndex;
-			TextureFiltering = template.TextureFiltering;
+			TextureFilterMode = template.TextureFilterMode;
 			MipmapDistanceMultiplier = template.MipmapDistanceMultiplier;
 			SourceBlendMode = template.SourceBlendMode;
-			DestinationBlendmode = template.DestinationBlendmode;
+			DestinationBlendMode = template.DestinationBlendMode;
 			Attributes = template.Attributes;
 
-			GinjaAttributes = template.GinjaAttributes;
 			GinjaTevStageParameter = template.GinjaTevStageParameter;
 			GinjaTexGenParameter = template.GinjaTexGenParameter;
+			GinjaUseVertexColorForDiffuse = template.GinjaUseVertexColorForDiffuse;
+			GinjaUseVertexColorForAmbient = template.GinjaUseVertexColorForAmbient;
+			GinjaTextureSlot = template.GinjaTextureSlot;
 		}
 
 
@@ -377,14 +330,16 @@ namespace SA3D.Modeling.Convert.Weighted
 				   SpecularExponent == material.SpecularExponent &&
 				   Ambient.Equals(material.Ambient) &&
 				   TextureIndex == material.TextureIndex &&
-				   TextureFiltering == material.TextureFiltering &&
+				   TextureFilterMode == material.TextureFilterMode &&
 				   MipmapDistanceMultiplier == material.MipmapDistanceMultiplier &&
 				   SourceBlendMode == material.SourceBlendMode &&
-				   DestinationBlendmode == material.DestinationBlendmode &&
+				   DestinationBlendMode == material.DestinationBlendMode &&
 				   Attributes == material.Attributes &&
-				   GinjaAttributes == material.GinjaAttributes &&
 				   GinjaTevStageParameter.Data == material.GinjaTevStageParameter.Data &&
-				   GinjaTexGenParameter.Data == material.GinjaTexGenParameter.Data;
+				   GinjaTexGenParameter.Data == material.GinjaTexGenParameter.Data &&
+				   GinjaUseVertexColorForDiffuse == material.GinjaUseVertexColorForDiffuse  &&
+				   GinjaUseVertexColorForAmbient == material.GinjaUseVertexColorForAmbient  &&
+				   GinjaTextureSlot == material.GinjaTextureSlot;
 		}
 
 		/// <inheritdoc/>
@@ -396,14 +351,16 @@ namespace SA3D.Modeling.Convert.Weighted
 			hash.Add(SpecularExponent);
 			hash.Add(Ambient);
 			hash.Add(TextureIndex);
-			hash.Add(TextureFiltering);
+			hash.Add(TextureFilterMode);
 			hash.Add(MipmapDistanceMultiplier);
 			hash.Add(SourceBlendMode);
-			hash.Add(DestinationBlendmode);
+			hash.Add(DestinationBlendMode);
 			hash.Add(Attributes);
-			hash.Add(GinjaAttributes);
 			hash.Add(GinjaTevStageParameter.Data);
 			hash.Add(GinjaTexGenParameter.Data);
+			hash.Add(GinjaUseVertexColorForDiffuse);
+			hash.Add(GinjaUseVertexColorForAmbient);
+			hash.Add(GinjaTextureSlot);
 			return hash.ToHashCode();
 		}
 

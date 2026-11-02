@@ -61,21 +61,11 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 				? [.. meshes.SelectMany(SplitMesh)]
 				: [.. meshes];
 
-			List<MeshConversionInfo>[] nodeMeshes = new List<MeshConversionInfo>[NodeWorldMatrices.Length];
-			for(int i = 0; i < nodeMeshes.Length; i++)
+			NodeMeshes = new MeshConversionInfo[NodeWorldMatrices.Length][];
+			for(int i = 0; i < NodeMeshes.Length; i++)
 			{
-				nodeMeshes[i] = [];
+				NodeMeshes[i] = [.. Meshes.Where(x => x.AttachedNodeIndex == i)];
 			}
-
-			foreach(MeshConversionInfo mesh in Meshes)
-			{
-				foreach(int nodeIndex in mesh.AttachedNodeIndices)
-				{
-					nodeMeshes[nodeIndex].Add(mesh);
-				}
-			}
-
-			NodeMeshes = [.. nodeMeshes.Select(x => x.ToArray())];
 
 			ConvertWeighted();
 		}
@@ -98,7 +88,10 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 
 			for(int i = 0; i < splitTriangleSets.Length; i++)
 			{
-				result.AddRange(MeshFromSplitTriangles(mesh, i, splitTriangleSets[i]));
+				if(MeshFromSplitTriangles(mesh, i, splitTriangleSets[i]) is MeshConversionInfo info)
+				{
+					result.Add(info);
+				}
 			}
 
 			return [.. result];
@@ -159,7 +152,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 			return result;
 		}
 
-		private IEnumerable<MeshConversionInfo> MeshFromSplitTriangles(MeshConversionInfo mesh, int splitIndex, WeightedCorner[][] splitTriangleSets)
+		private MeshConversionInfo? MeshFromSplitTriangles(MeshConversionInfo mesh, int splitIndex, WeightedCorner[][] splitTriangleSets)
 		{
 			if(!FinalizeSplitMeshData(mesh, splitIndex, splitTriangleSets,
 				out WeightedVertex[]? vertices,
@@ -167,65 +160,57 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 				out WeightedMaterial[]? materials,
 				out SortedSet<int>? usedWeightIndices))
 			{
-				yield break;
+				return null;
 			}
 
 			int relativeNodeIndex = splitIndex > 0 ? mesh.Mesh.WeightNodeIndexMap![splitIndex - 1] : 0;
 
-			foreach((int enumIndex, int attachedNodeIndex) in mesh.AttachedNodeIndices.Index())
+			// We pass the polygon data (and weight arrays) over directly, instead of copying it,
+			// since these splits should never make it out of the converter process.
+
+			MeshConversionInfo splitMesh = new(new(vertices.ContentClone(), triangleSets, materials))
 			{
-				// We pass the polygon data (and weight arrays) over directly, instead of copying it,
-				// since these splits should never make it out of the converter process.
+				HasNormals = mesh.HasNormals,
+				HasDiffuseColors = mesh.HasDiffuseColors,
+				NoBounds = mesh.NoBounds,
+				VolumeMesh = mesh.VolumeMesh,
+				ChunkVertexType = mesh.ChunkVertexType
+			};
 
-				MeshConversionInfo splitMesh = new(new(vertices.ContentClone(), triangleSets, materials))
+			splitMesh.Mesh.Label = $"{mesh.Mesh.Label}_Split_{splitIndex}";
+			splitMesh.AttachedNodeIndex = mesh.AttachedNodeIndex + relativeNodeIndex;
+
+			int weightMapSize = usedWeightIndices.Count(x => x != splitIndex);
+			if(weightMapSize > 0)
+			{
+				splitMesh.Mesh.WeightNodeIndexMap = new int[weightMapSize];
+
+				foreach((int j, int usedWeightIndex) in usedWeightIndices.Where(x => x != splitIndex).Index())
 				{
-					HasNormals = mesh.HasNormals,
-					HasDiffuseColors = mesh.HasDiffuseColors,
-					NoBounds = mesh.NoBounds,
-					VolumeMesh = mesh.VolumeMesh,
-					ChunkVertexType = mesh.ChunkVertexType
-				};
-
-				splitMesh.Mesh.Label = mesh.AttachedNodeIndices.Count > 1
-					? $"{mesh.Mesh.Label}_Split_{splitIndex}"
-					: $"{mesh.Mesh.Label}_Split{enumIndex}_{splitIndex}";
-
-				int targetNodeIndex = attachedNodeIndex + relativeNodeIndex;
-				splitMesh.AttachedNodeIndices.Add(targetNodeIndex);
-
-				int weightMapSize = usedWeightIndices.Count(x => x != splitIndex);
-				if(weightMapSize > 0)
-				{
-					splitMesh.Mesh.WeightNodeIndexMap = new int[weightMapSize];
-
-					foreach((int j, int usedWeightIndex) in usedWeightIndices.Where(x => x != splitIndex).Index())
-					{
-						int weightNodeIndex = usedWeightIndex == 0 ? 0 : mesh.Mesh.WeightNodeIndexMap![usedWeightIndex - 1];
-						splitMesh.Mesh.WeightNodeIndexMap[j] = weightNodeIndex - relativeNodeIndex;
-					}
+					int weightNodeIndex = usedWeightIndex == 0 ? 0 : mesh.Mesh.WeightNodeIndexMap![usedWeightIndex - 1];
+					splitMesh.Mesh.WeightNodeIndexMap[j] = weightNodeIndex - relativeNodeIndex;
 				}
-
-				if(splitIndex > 0)
-				{
-
-					Matrix4x4 toLocalSpaceMatrix = GetNodeSpaceTransform(attachedNodeIndex, targetNodeIndex);
-
-					for(int v = 0; v < splitMesh.Mesh.Vertices.Length; v++)
-					{
-						WeightedVertex vertex = splitMesh.Mesh.Vertices[v];
-						vertex.Position = Vector3.Transform(vertex.Position, toLocalSpaceMatrix);
-
-						if(splitMesh.HasNormals)
-						{
-							vertex.Normal = Vector3.TransformNormal(vertex.Normal, toLocalSpaceMatrix);
-						}
-
-						splitMesh.Mesh.Vertices[v] = vertex;
-					}
-				}
-
-				yield return splitMesh;
 			}
+
+			if(splitIndex > 0)
+			{
+				Matrix4x4 toLocalSpaceMatrix = GetNodeSpaceTransform(mesh.AttachedNodeIndex, splitMesh.AttachedNodeIndex);
+
+				for(int v = 0; v < splitMesh.Mesh.Vertices.Length; v++)
+				{
+					WeightedVertex vertex = splitMesh.Mesh.Vertices[v];
+					vertex.Position = Vector3.Transform(vertex.Position, toLocalSpaceMatrix);
+
+					if(splitMesh.HasNormals)
+					{
+						vertex.Normal = Vector3.TransformNormal(vertex.Normal, toLocalSpaceMatrix);
+					}
+
+					splitMesh.Mesh.Vertices[v] = vertex;
+				}
+			}
+
+			return splitMesh;
 		}
 
 		private static bool FinalizeSplitMeshData(

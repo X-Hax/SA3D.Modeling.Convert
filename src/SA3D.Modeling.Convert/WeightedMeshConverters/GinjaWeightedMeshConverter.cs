@@ -402,23 +402,23 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 
 			yield return new GinjaStripFlagsParameter()
 			{
-				ChannelCount = material.GinjaChannelCount,
-				TexGenCount = material.GinjaTexGenCount,
-				IgnoreLight = material.NoLighting,
-				IgnoreSpecular = material.NoSpecular,
-				IgnoreAmbient = material.NoAmbient,
+				ChannelCount = 1,
+				TexGenCount = 1,
+				TevStageCount = 1,
+				IgnoreLight = material.IgnoreLighting,
+				IgnoreSpecular = material.IgnoreSpecular,
+				IgnoreAmbient = material.IgnoreAmbient,
 				UseVertexColorForDiffuse = material.GinjaUseVertexColorForDiffuse,
 				UseVertexColorForAmbient = material.GinjaUseVertexColorForAmbient,
 				UseAlpha = transparent,
 				NoPunchThrough = transparent && material.AlphaMode == Mesh.AlphaMode.TransparentForceAlphaClipOff,
-				DoubleSided = !material.BackfaceCulling,
-				TevStageCount = material.GinjaTevStageCount
+				DoubleSided = material.DoubleSided,
 			};
 
 			yield return new GinjaBlendAlphaParameter()
 			{
 				SourceAlpha = material.SourceBlendMode,
-				DestinationAlpha = material.DestinationBlendmode,
+				DestinationAlpha = material.DestinationBlendMode,
 				UseAlpha = transparent
 			};
 
@@ -427,7 +427,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 				DiffuseColor = material.Diffuse
 			};
 
-			if(!material.NoAmbient)
+			if(!material.IgnoreAmbient)
 			{
 				yield return new GinjaAmbientColorParameter()
 				{
@@ -435,11 +435,14 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 				};
 			}
 
-			if(!material.NoSpecular)
+			if(!material.IgnoreSpecular)
 			{
+				Color specular = material.Specular;
+				specular.Alpha = (byte)int.Clamp((int)Math.Round(material.SpecularExponent), 0, byte.MaxValue);
+
 				yield return new GinjaSpecularColorParameter()
 				{
-					SpecularColor = material.Specular
+					SpecularColor = specular
 				};
 			}
 

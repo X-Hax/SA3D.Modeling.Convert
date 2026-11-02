@@ -1,7 +1,6 @@
 ﻿using J113D.Strippify;
 using SA3D.Common;
 using SA3D.Modeling.Convert.Weighted;
-using SA3D.Modeling.Mesh;
 using SA3D.Modeling.Mesh.Chunk;
 using SA3D.Modeling.Mesh.Chunk.PolyChunks;
 using SA3D.Modeling.Mesh.Chunk.Structs;
@@ -11,10 +10,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
-using System.Reflection.Metadata.Ecma335;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks.Dataflow;
-using System.Xml.XPath;
 
 namespace SA3D.Modeling.Convert.WeightedMeshConverters
 {
@@ -697,7 +692,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 				MaterialChunk materialChunk = new()
 				{
 					SourceBlendMode = material.SourceBlendMode,
-					DestinationBlendMode = material.DestinationBlendmode
+					DestinationBlendMode = material.DestinationBlendMode
 				};
 
 				if(first || activeMaterial.Diffuse.ARGB != material.Diffuse.ARGB)
@@ -705,13 +700,13 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 					materialChunk.Diffuse = activeMaterial.Diffuse = material.Diffuse;
 				}
 
-				if(!activeMaterial.NoAmbient && (!initAmbient || activeMaterial.Ambient.ARGB != material.Ambient.ARGB))
+				if(!activeMaterial.IgnoreAmbient && (!initAmbient || activeMaterial.Ambient.ARGB != material.Ambient.ARGB))
 				{
 					materialChunk.Ambient = activeMaterial.Ambient = material.Ambient;
 					initAmbient = true;
 				}
 
-				if(!activeMaterial.NoSpecular && (!initSpecular || activeMaterial.Specular.ARGB != material.Specular.ARGB))
+				if(!activeMaterial.IgnoreSpecular && (!initSpecular || activeMaterial.Specular.ARGB != material.Specular.ARGB))
 				{
 					materialChunk.Specular = activeMaterial.Ambient = material.Specular;
 					materialChunk.SpecularExponent = specularExponent;
@@ -724,13 +719,13 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 					result.Add(materialChunk);
 
 					activeMaterial.SourceBlendMode = material.SourceBlendMode;
-					activeMaterial.DestinationBlendmode = material.DestinationBlendmode;
+					activeMaterial.DestinationBlendMode = material.DestinationBlendMode;
 				}
 				else
 				{
 					byte prevExponent = (byte)float.Round(activeMaterial.SpecularExponent);
 
-					if(!material.NoSpecular && specularExponent != prevExponent)
+					if(!material.IgnoreSpecular && specularExponent != prevExponent)
 					{
 						result.Add(new SpecularExponentChunk()
 						{
@@ -742,16 +737,16 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 
 					if(material.AlphaMode != Mesh.AlphaMode.Opaque && (
 							material.SourceBlendMode != activeMaterial.SourceBlendMode
-							|| material.DestinationBlendmode != activeMaterial.DestinationBlendmode))
+							|| material.DestinationBlendMode != activeMaterial.DestinationBlendMode))
 					{
 						result.Add(new BlendAlphaChunk()
 						{
 							SourceBlendMode = material.SourceBlendMode,
-							DestinationBlendMode = material.DestinationBlendmode
+							DestinationBlendMode = material.DestinationBlendMode
 						});
 
 						activeMaterial.SourceBlendMode = material.SourceBlendMode;
-						activeMaterial.DestinationBlendmode = material.DestinationBlendmode;
+						activeMaterial.DestinationBlendMode = material.DestinationBlendMode;
 					}
 				}
 
@@ -769,7 +764,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 						|| activeMaterial.MirrorU != material.MirrorU
 						|| activeMaterial.TextureIndex != material.TextureIndex
 						|| activeMaterial.AnisotropicFiltering != material.AnisotropicFiltering
-						|| activeMaterial.TextureFiltering != material.TextureFiltering)
+						|| activeMaterial.TextureFilterMode != material.TextureFilterMode)
 					{
 						result.Add(new TextureChunk()
 						{
@@ -780,7 +775,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 							MirrorU = material.MirrorU,
 							TextureID = (ushort)material.TextureIndex,
 							SuperSample = material.AnisotropicFiltering,
-							FilterMode = material.TextureFiltering
+							FilterMode = material.TextureFilterMode
 						});
 
 						activeMaterial.ClampV = material.ClampV;
@@ -789,7 +784,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 						activeMaterial.MirrorU = material.MirrorU;
 						activeMaterial.TextureIndex = material.TextureIndex;
 						activeMaterial.AnisotropicFiltering = material.AnisotropicFiltering;
-						activeMaterial.TextureFiltering = material.TextureFiltering;
+						activeMaterial.TextureFilterMode = material.TextureFilterMode;
 						activeMaterial.MipmapDistanceMultiplier = mdm.MipmapDistanceMultiplier;
 
 						initTexture = true;
@@ -820,12 +815,12 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 				StripChunk stripChunk = new()
 				{
 					AlphaMode = material.AlphaMode,
-					DoubleSide = !material.BackfaceCulling,
-					EnvironmentMapping = material.NormalMapping,
-					FlatShading = material.Flat,
-					IgnoreAmbient = material.NoAmbient,
-					IgnoreLight = material.NoLighting,
-					IgnoreSpecular = material.NoSpecular,
+					DoubleSide = material.DoubleSided,
+					EnvironmentMapping = material.EnvironmentMapping,
+					FlatShading = material.FlatShading,
+					IgnoreAmbient = material.IgnoreAmbient,
+					IgnoreLight = material.IgnoreLighting,
+					IgnoreSpecular = material.IgnoreSpecular,
 					Strips = strips
 				};
 
@@ -840,12 +835,12 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 				result.Add(stripChunk);
 
 				activeMaterial.AlphaMode = material.AlphaMode;
-				activeMaterial.BackfaceCulling = material.BackfaceCulling;
-				activeMaterial.NormalMapping = material.NormalMapping;
-				activeMaterial.Flat = material.Flat;
-				activeMaterial.NoAmbient = material.NoAmbient;
-				activeMaterial.NoLighting = material.NoLighting;
-				activeMaterial.NoSpecular = material.NoSpecular;
+				activeMaterial.DoubleSided = material.DoubleSided;
+				activeMaterial.EnvironmentMapping = material.EnvironmentMapping;
+				activeMaterial.FlatShading = material.FlatShading;
+				activeMaterial.IgnoreAmbient = material.IgnoreAmbient;
+				activeMaterial.IgnoreLighting = material.IgnoreLighting;
+				activeMaterial.IgnoreSpecular = material.IgnoreSpecular;
 			}
 
 			return [.. result];

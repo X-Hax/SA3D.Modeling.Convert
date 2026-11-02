@@ -106,9 +106,9 @@ namespace SA3D.Modeling.Convert.MeshConverters
 								break;
 
 							case GinjaStripFlagsParameter stripFlagsParameter:
-								material.NoLighting = stripFlagsParameter.IgnoreLight;
-								material.NoSpecular = stripFlagsParameter.IgnoreSpecular;
-								material.NoAmbient = stripFlagsParameter.IgnoreAmbient;
+								material.IgnoreLighting = stripFlagsParameter.IgnoreLight;
+								material.IgnoreSpecular = stripFlagsParameter.IgnoreSpecular;
+								material.IgnoreAmbient = stripFlagsParameter.IgnoreAmbient;
 
 								if(!stripFlagsParameter.UseAlpha)
 								{
@@ -123,11 +123,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 									material.AlphaMode = AlphaMode.TransparentForceAlphaClipOn;
 								}
 
-								material.BackfaceCulling = !stripFlagsParameter.DoubleSided;
-
-								material.GinjaChannelCount = stripFlagsParameter.ChannelCount;
-								material.GinjaTexGenCount = stripFlagsParameter.TexGenCount;
-								material.GinjaTevStageCount = stripFlagsParameter.TevStageCount;
+								material.DoubleSided = stripFlagsParameter.DoubleSided;
 
 								material.GinjaUseVertexColorForDiffuse = stripFlagsParameter.UseVertexColorForDiffuse;
 								material.GinjaUseVertexColorForAmbient = stripFlagsParameter.UseVertexColorForAmbient;
@@ -135,7 +131,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 
 							case GinjaBlendAlphaParameter blendAlphaParameter:
 								material.SourceBlendMode = blendAlphaParameter.SourceAlpha;
-								material.DestinationBlendmode = blendAlphaParameter.DestinationAlpha;
+								material.DestinationBlendMode = blendAlphaParameter.DestinationAlpha;
 								// material.AlphaMode // we ignore this and instead rely on the flags in GinjaStripFlagsParameter
 								break;
 
@@ -148,7 +144,10 @@ namespace SA3D.Modeling.Convert.MeshConverters
 								break;
 
 							case GinjaSpecularColorParameter specularColorParameter:
-								material.Specular = specularColorParameter.SpecularColor;
+								Color specular = specularColorParameter.SpecularColor;
+								specular.Alpha = byte.MaxValue;
+								material.Specular = specular;
+								material.SpecularExponent = specularColorParameter.SpecularColor.Alpha;
 								break;
 
 							case GinjaTextureParameter textureParameter:
@@ -286,7 +285,6 @@ namespace SA3D.Modeling.Convert.MeshConverters
 		protected override MeshConversionInfo[] ConvertToWeighted()
 		{
 			List<MeshConversionInfo> result = [];
-			Dictionary<GinjaMesh, MeshConversionInfo?> converted = [];
 
 			for(int i = 0; i < NodeWorldMatrices.Length; i++)
 			{
@@ -297,20 +295,9 @@ namespace SA3D.Modeling.Convert.MeshConverters
 					continue;
 				}
 
-				if(!converted.TryGetValue(mesh, out MeshConversionInfo? info))
+				if(ConvertMeshToWeighted(mesh) is  MeshConversionInfo info)
 				{
-					info = ConvertMeshToWeighted(mesh);
-					converted.Add(mesh, info);
-
-					if(info != null)
-					{
-						result.Add(info);
-					}
-				}
-
-				if(info != null)
-				{
-					_ = info.AttachedNodeIndices.Add(i);
+					result.Add(info);
 				}
 			}
 

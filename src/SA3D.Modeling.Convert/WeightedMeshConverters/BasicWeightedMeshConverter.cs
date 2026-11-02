@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Reflection.Metadata.Ecma335;
 
 namespace SA3D.Modeling.Convert.WeightedMeshConverters
 {
@@ -337,7 +336,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 					}
 
 					Color[]? colors = mesh.HasDiffuseColors ? [.. cornerEnumerable.Select(x => x.Diffuse)] : null;
-					Vector2[]? texcoords = material.UseTexture ? [.. cornerEnumerable.Select(x => x.TexCoord)] : null;
+					Vector2[]? texcoords = (material.UseTexture && !material.EnvironmentMapping) ? [.. cornerEnumerable.Select(x => x.TexCoord)] : null;
 
 					string meshSetLabel = meshLabel + "_set" + _meshSets.Count;
 
@@ -358,19 +357,19 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 						TextureID = material.TextureIndex,
 						MipmapDistanceMultiplier = material.MipmapDistanceMultiplier,
 						SuperSample = material.AnisotropicFiltering,
-						FilterMode = material.TextureFiltering,
+						FilterMode = material.TextureFilterMode,
 						ClampV = material.ClampV,
 						ClampU = material.ClampU,
 						MirrorV = material.MirrorV,
 						MirrorU = material.MirrorU,
-						IgnoreSpecular = material.NoSpecular,
+						IgnoreSpecular = material.IgnoreSpecular,
 						UseAlpha = material.AlphaMode != AlphaMode.Opaque,
 						UseTexture = material.UseTexture,
-						EnvironmentMap = material.NormalMapping,
-						DoubleSided = !material.BackfaceCulling,
-						FlatShading = material.Flat,
-						IgnoreLighting = material.NoLighting,
-						DestinationAlpha = material.DestinationBlendmode,
+						EnvironmentMap = material.EnvironmentMapping,
+						DoubleSided = material.DoubleSided,
+						FlatShading = material.FlatShading,
+						IgnoreLighting = material.IgnoreLighting,
+						DestinationAlpha = material.DestinationBlendMode,
 						SourceAlpha = material.SourceBlendMode
 					});
 				}

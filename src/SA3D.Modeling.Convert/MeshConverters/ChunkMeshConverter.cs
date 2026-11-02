@@ -277,7 +277,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 				result.Mesh.WeightNodeIndexMap = [.. weightNodes.Where(x => x != attachedNode).Select(x => x - attachedNode)];
 			}
 
-			result.AttachedNodeIndices.Add(attachedNode);
+			result.AttachedNodeIndex = attachedNode;
 
 			foreach(WeightedCorner[] triangleSet in result.Mesh.TriangleSets)
 			{
@@ -325,7 +325,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 				{
 					case BlendAlphaChunk blendAlphaChunk:
 						_activeMaterial.SourceBlendMode = blendAlphaChunk.SourceBlendMode;
-						_activeMaterial.DestinationBlendmode = blendAlphaChunk.DestinationBlendMode;
+						_activeMaterial.DestinationBlendMode = blendAlphaChunk.DestinationBlendMode;
 						break;
 
 					case MipmapDistanceMultiplierChunk mipmapDistanceMultiplierChunk:
@@ -357,7 +357,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 						_activeMaterial.MirrorU = textureChunk.MirrorU;
 						_activeMaterial.TextureIndex = textureChunk.TextureID;
 						_activeMaterial.AnisotropicFiltering = textureChunk.SuperSample;
-						_activeMaterial.TextureFiltering = textureChunk.FilterMode;
+						_activeMaterial.TextureFilterMode = textureChunk.FilterMode;
 						break;
 
 					case MaterialChunk materialChunk:
@@ -389,18 +389,18 @@ namespace SA3D.Modeling.Convert.MeshConverters
 						break;
 
 					case StripChunk stripChunk:
-						if(_activeMaterial.TextureFiltering == FilterMode.TrilinearB)
+						if(_activeMaterial.TextureFilterMode == FilterMode.TrilinearB)
 						{
 							// we ignore the second part of trilinear meshes, since those should be identical to the first part (TrinilearA)
 							continue;
 						}
 
-						_activeMaterial.NoLighting = stripChunk.IgnoreLight;
-						_activeMaterial.NoSpecular = stripChunk.IgnoreSpecular;
-						_activeMaterial.NoAmbient = stripChunk.IgnoreAmbient;
-						_activeMaterial.BackfaceCulling = !stripChunk.DoubleSide;
-						_activeMaterial.Flat = stripChunk.FlatShading;
-						_activeMaterial.NormalMapping = stripChunk.EnvironmentMapping;
+						_activeMaterial.IgnoreLighting = stripChunk.IgnoreLight;
+						_activeMaterial.IgnoreSpecular = stripChunk.IgnoreSpecular;
+						_activeMaterial.IgnoreAmbient = stripChunk.IgnoreAmbient;
+						_activeMaterial.DoubleSided = stripChunk.DoubleSide;
+						_activeMaterial.FlatShading = stripChunk.FlatShading;
+						_activeMaterial.EnvironmentMapping = stripChunk.EnvironmentMapping;
 						_activeMaterial.AlphaMode = stripChunk.AlphaMode;
 						_activeMaterial.TexcoordPrecisionLevel = (byte)(stripChunk.Type.CheckStripHasHDTexcoords() ? 2 : 0);
 
