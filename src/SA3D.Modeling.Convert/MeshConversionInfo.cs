@@ -26,6 +26,11 @@ namespace SA3D.Modeling.Convert
 		public bool HasNormals { get; set; }
 
 		/// <summary>
+		/// Whether vertices have user attributes
+		/// </summary>
+		public bool HasVertexUserAttributes { get; set; }
+
+		/// <summary>
 		/// Whether the mesh has diffuse colors (even if they are all white).
 		/// </summary>
 		public bool HasDiffuseColors { get; set; }

@@ -8,6 +8,8 @@ using SA3D.Modeling.ObjectData.Structs;
 using SA3D.Modeling.Structs;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Numerics;
 
@@ -23,7 +25,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 			public Vector3 normal;
 			public Color diffuse;
 			public Color specular;
-			public uint userAttribute;
+			public uint userAttributes;
 			public List<(int nodeIndex, float weight)>? weights;
 		}
 
@@ -32,6 +34,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 
 		private VertexChunkType _activeVertexType;
 		private WeightedMaterial _activeMaterial;
+		private byte _volumePolygonAttributeCount;
 		private bool _hasColors;
 
 		private readonly List<WeightedCorner[]> _triangleSets = [];
@@ -86,7 +89,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 
 				if(hasUserAttributes)
 				{
-					vertex.userAttribute = chunkVertex.Attributes;
+					vertex.userAttributes = chunkVertex.Attributes;
 				}
 
 				_vertexBuffer[index] = vertex;
@@ -103,8 +106,12 @@ namespace SA3D.Modeling.Convert.MeshConverters
 			float uvFactor = chunk.Type.CheckStripHasHDTexcoords() ? hduvFactor : lduvFactor;
 
 			bool vertexColors = _activeVertexType.CheckHasDiffuseColor();
+			bool specularColors = _activeVertexType.CheckHasSpecularColor();
 
 			_hasColors |= vertexColors | hasPolyColors;
+			bool hasAttribute1 = chunk.TriangleAttributeCount > 0;
+			bool hasAttribute2 = chunk.TriangleAttributeCount > 1;
+			bool hasAttribute3 = chunk.TriangleAttributeCount > 2;
 
 			List<WeightedCorner> corners = [];
 
@@ -126,9 +133,27 @@ namespace SA3D.Modeling.Convert.MeshConverters
 						corner.Diffuse = _vertexBuffer[chunkCorner.Index].diffuse;
 					}
 
+					if(specularColors)
+					{
+						corner.Specular = _vertexBuffer[chunkCorner.Index].specular;
+					}
+
 					if(hasTexCoords)
 					{
 						corner.TexCoord = chunkCorner.Texcoord * uvFactor;
+					}
+
+					if(hasAttribute1)
+					{
+						corner.Attributes1 = chunkCorner.Attributes1;
+						if(hasAttribute2)
+						{
+							corner.Attributes2 = chunkCorner.Attributes2;
+							if(hasAttribute3)
+							{
+								corner.Attributes3 = chunkCorner.Attributes3;
+							}
+						}
 					}
 
 					rawCorners[i] = corner;
@@ -148,25 +173,85 @@ namespace SA3D.Modeling.Convert.MeshConverters
 		{
 			WeightedCorner[] rawCorners = new WeightedCorner[chunk.Polygons.Sum(x => x.NumIndices)];
 			int index = 0;
-			foreach(IChunkVolumePolygon polygon in chunk.Polygons)
-			{
-				for(int j = 0; j < polygon.NumIndices; j++, index++)
-				{
-					rawCorners[index] = new(polygon[j]);
-				}
-			}
+
+			_volumePolygonAttributeCount = (byte)chunk.PolygonAttributeCount;
+			bool hasAttribute1 = chunk.PolygonAttributeCount > 0;
+			bool hasAttribute2 = chunk.PolygonAttributeCount > 1;
+			bool hasAttribute3 = chunk.PolygonAttributeCount > 2;
 
 			switch(chunk.Type)
 			{
 				case PolyChunkType.Volume_Triangle:
+					foreach(ChunkVolumeTriangle triangle in chunk.Polygons.Cast<ChunkVolumeTriangle>())
+					{
+						ushort attributes1 = hasAttribute1 ? triangle.Attribute1 : (ushort)0;
+						ushort attributes2 = hasAttribute1 ? triangle.Attribute2 : (ushort)0;
+						ushort attributes3 = hasAttribute1 ? triangle.Attribute3 : (ushort)0;
+
+						for(int j = 0; j < triangle.NumIndices; j++, index++)
+						{
+							rawCorners[index] = new(triangle[j])
+							{
+								Attributes1 = attributes1,
+								Attributes2 = attributes2,
+								Attributes3 = attributes3,
+							};
+						}
+					}
+
 					_volumeTriangles.AddRange(rawCorners);
 					break;
+
 				case PolyChunkType.Volume_Quad:
+					foreach(ChunkVolumeQuad triangle in chunk.Polygons.Cast<ChunkVolumeQuad>())
+					{
+						ushort attributes1 = hasAttribute1 ? triangle.Attribute1 : (ushort)0;
+						ushort attributes2 = hasAttribute1 ? triangle.Attribute2 : (ushort)0;
+						ushort attributes3 = hasAttribute1 ? triangle.Attribute3 : (ushort)0;
+
+						for(int j = 0; j < triangle.NumIndices; j++, index++)
+						{
+							rawCorners[index] = new(triangle[j])
+							{
+								Attributes1 = attributes1,
+								Attributes2 = attributes2,
+								Attributes3 = attributes3,
+							};
+						}
+					}
+
 					_volumeTriangles.AddRange(PolygonUtil.UnravelQuads(rawCorners));
 					break;
+
 				case PolyChunkType.Volume_Strip:
+					foreach(ChunkVolumeStrip strip in chunk.Polygons.Cast<ChunkVolumeStrip>())
+					{
+						for(int j = 0; j < strip.NumIndices; j++, index++)
+						{
+							WeightedCorner rawCorner = new(strip[j]);
+
+							if(j > 1 && hasAttribute1)
+							{
+								rawCorner.Attributes1 = strip.TriangleAttributes[j, 0];
+								if(hasAttribute2)
+								{
+									rawCorner.Attributes2 = strip.TriangleAttributes[j, 1];
+									if(hasAttribute3)
+									{
+										rawCorner.Attributes3 = strip.TriangleAttributes[j, 2];
+									}
+								}
+							}
+
+							rawCorners[index] = rawCorner;
+						}
+					}
+
 					_volumeTriangles.AddRange(PolygonUtil.UnravelStrips(rawCorners, chunk.Polygons.Cast<ChunkVolumeStrip>().Select(x => (x.NumIndices, x.Reversed))));
 					break;
+
+				default:
+					throw new UnreachableException();
 			}
 		}
 
@@ -208,6 +293,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 			Dictionary<ushort, ushort> vertexIndexMapping = [];
 			bool hasNormals = _activeVertexType.CheckHasNormal();
 			bool hasWeights = weightNodes.Length > 1;
+			bool hasUserAttributes = _activeVertexType.CheckHasUserAttributes();
 
 			foreach(ushort vertexIndex in usedVertexIndices)
 			{
@@ -256,6 +342,11 @@ namespace SA3D.Modeling.Convert.MeshConverters
 					}
 				}
 
+				if(hasUserAttributes)
+				{
+					vertex.UserAttributes = bufferVertex.userAttributes;
+				}
+
 				ushort index = (ushort)vertexIndexMapping.Count;
 				vertexIndexMapping[vertexIndex] = index;
 				vertices[index] = vertex;
@@ -269,8 +360,32 @@ namespace SA3D.Modeling.Convert.MeshConverters
 			{
 				HasNormals = hasNormals,
 				HasDiffuseColors = _hasColors,
-				ChunkVertexType = _activeVertexType
+				HasVertexUserAttributes = hasUserAttributes,
+				ChunkVertexType = _activeVertexType,
 			};
+
+			// Ensuring that per-polygon attributes are correct by copying the attributes
+			// over from each triangles last corner
+			if(materials.Any(x => x.PolygonAttributeCount > 0))
+			{
+				foreach(WeightedCorner[] triangleSet in result.Mesh.TriangleSets)
+				{
+					for(int i = 0; i < triangleSet.Length; i += 3)
+					{
+						WeightedCorner c1 = triangleSet[i];
+						WeightedCorner c2 = triangleSet[i + 1];
+						WeightedCorner c3 = triangleSet[i + 2];
+
+						c1.Attributes1 = c2.Attributes1 = c3.Attributes1;
+						c1.Attributes2 = c2.Attributes2 = c3.Attributes2;
+						c1.Attributes3 = c2.Attributes3 = c3.Attributes3;
+
+						triangleSet[i] = c1;
+						triangleSet[i + 1] = c2;
+						triangleSet[i + 2] = c3;
+					}
+				}
+			}
 
 			if(hasWeights)
 			{
@@ -298,8 +413,10 @@ namespace SA3D.Modeling.Convert.MeshConverters
 		private MeshConversionInfo CompileVolumeMesh()
 		{
 			MeshConversionInfo result = CompileMesh(
-				[[.. _volumeTriangles]], 
-				[WeightedMaterial.DefaultValues]
+				[[.. _volumeTriangles]],
+				[new(WeightedMaterial.DefaultValues) {
+					PolygonAttributeCount = _volumePolygonAttributeCount
+				}]
 			);
 
 			result.VolumeMesh = true;
@@ -403,6 +520,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 						_activeMaterial.EnvironmentMapping = stripChunk.EnvironmentMapping;
 						_activeMaterial.AlphaMode = stripChunk.AlphaMode;
 						_activeMaterial.TexcoordPrecisionLevel = (byte)(stripChunk.Type.CheckStripHasHDTexcoords() ? 2 : 0);
+						_activeMaterial.PolygonAttributeCount = (byte)stripChunk.TriangleAttributeCount;
 
 						ProcessStripChunk(stripChunk);
 						break;

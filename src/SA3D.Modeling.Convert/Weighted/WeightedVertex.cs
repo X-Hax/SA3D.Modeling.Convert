@@ -32,6 +32,11 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// </summary>
 		public float[]? Weights { get; set; }
 
+		/// <summary>
+		/// User attributes for custom usage
+		/// </summary>
+		public uint UserAttributes { get; set; }
+
 
 		/// <summary>
 		/// Create a new vertex with no weight values.

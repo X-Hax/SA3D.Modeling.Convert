@@ -224,7 +224,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 			}
 
 			PolyChunk[] polychunks = mesh.VolumeMesh
-				? CompileVolumePolyChunks()
+				? CompileVolumePolyChunks(mesh)
 				: CompilePolyChunks(mesh);
 
 			return new((ushort)_expandableChunkVertices.Length, vertexChunks, polychunks);
@@ -594,6 +594,7 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 
 			ushort vertexOffset = 0;
 			bool hasNormals = mesh.ChunkVertexType.CheckHasNormal();
+			bool hasUserAttributes = mesh.ChunkVertexType.CheckHasUserAttributes();
 
 			foreach(int weightIndex in _weightIndexOrder)
 			{
@@ -614,6 +615,11 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 						if(hasNormals)
 						{
 							chunkVertex.Normal = vertex.Normal;
+						}
+
+						if(hasUserAttributes)
+						{
+							chunkVertex.Attributes = vertex.UserAttributes;
 						}
 
 						chunkVertices.Add(chunkVertex);
@@ -641,31 +647,57 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 			return result;
 		}
 
-		private PolyChunk[] CompileVolumePolyChunks()
+		private PolyChunk[] CompileVolumePolyChunks(MeshConversionInfo mesh)
 		{
-			IChunkVolumePolygon[] triangles = new IChunkVolumePolygon[_chunkTriangleSets.Sum(x => x.Length) / 3];
+			List<PolyChunk> result = [];
 
-			int dst = 0;
-			foreach(ChunkCorner[] triangleSet in _chunkTriangleSets)
+			foreach((ChunkCorner[] triangleSet, WeightedMaterial material) in _chunkTriangleSets.Zip(mesh.Mesh.Materials))
 			{
-				for(int i = 0; i < triangleSet.Length; i += 3, dst += 3)
+				if(triangleSet.Length == 0)
 				{
-					triangles[dst] = new ChunkVolumeTriangle()
+					continue;
+				}
+
+				IChunkVolumePolygon[] triangles = new IChunkVolumePolygon[triangleSet.Length / 3];
+				bool hasAttr1 = material.PolygonAttributeCount > 0;
+				bool hasAttr2 = material.PolygonAttributeCount > 1;
+				bool hasAttr3 = material.PolygonAttributeCount > 2;
+
+				for(int i = 0, o = 0; i < triangleSet.Length; i += 3, o++)
+				{
+					ChunkCorner lastCorner = triangleSet[i + 2];
+
+					ChunkVolumeTriangle triangle = new()
 					{
 						Index1 = triangleSet[i].Index,
 						Index2 = triangleSet[i + 1].Index,
-						Index3 = triangleSet[i + 2].Index,
+						Index3 = lastCorner.Index
 					};
+
+					if(hasAttr1)
+					{
+						triangle.Attribute1 = lastCorner.Attributes1;
+						if(hasAttr2)
+						{
+							triangle.Attribute2 = lastCorner.Attributes2;
+							if(hasAttr3)
+							{
+								triangle.Attribute3 = lastCorner.Attributes3;
+							}
+						}
+					}
+
+					triangles[o] = triangle;
 				}
+
+				result.Add(new VolumeChunk()
+				{
+					Polygons = triangles,
+					PolygonAttributeCount = material.PolygonAttributeCount
+				});
 			}
 
-			return [
-				new VolumeChunk()
-				{
-					// default type is triangles, no need to update it
-					Polygons = triangles
-				}
-			];
+			return [.. result];
 		}
 
 		private PolyChunk[] CompilePolyChunks(MeshConversionInfo mesh)

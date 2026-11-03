@@ -2,6 +2,8 @@
 using SA3D.Modeling.Mesh.Ginja.Parameters;
 using SA3D.Modeling.Structs;
 using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace SA3D.Modeling.Convert.Weighted
 {
@@ -92,6 +94,23 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// <br/> When converting, the lowest supported precision is used.
 		/// </summary>
 		public byte TexcoordPrecisionLevel { get; set; }
+
+		/// <summary>
+		/// Number of polygon attributes (ranges from 0 to 3)
+		/// </summary>
+		public byte PolygonAttributeCount
+		{
+			get;
+			set
+			{
+				if(value is < 0 or > 3)
+				{
+					throw new ArgumentOutOfRangeException(nameof(value), "Value out of range. Must be between 0 and 3.");
+				}
+
+				field = value;
+			}
+		}
 
 		#endregion
 
@@ -335,11 +354,13 @@ namespace SA3D.Modeling.Convert.Weighted
 				   SourceBlendMode == material.SourceBlendMode &&
 				   DestinationBlendMode == material.DestinationBlendMode &&
 				   Attributes == material.Attributes &&
+				   TexcoordPrecisionLevel == material.TexcoordPrecisionLevel &&
+				   PolygonAttributeCount == material.PolygonAttributeCount &&
+				   GinjaUseVertexColorForDiffuse == material.GinjaUseVertexColorForDiffuse &&
+				   GinjaUseVertexColorForAmbient == material.GinjaUseVertexColorForAmbient &&
+				   GinjaTextureSlot == material.GinjaTextureSlot &&
 				   GinjaTevStageParameter.Data == material.GinjaTevStageParameter.Data &&
-				   GinjaTexGenParameter.Data == material.GinjaTexGenParameter.Data &&
-				   GinjaUseVertexColorForDiffuse == material.GinjaUseVertexColorForDiffuse  &&
-				   GinjaUseVertexColorForAmbient == material.GinjaUseVertexColorForAmbient  &&
-				   GinjaTextureSlot == material.GinjaTextureSlot;
+				   GinjaTexGenParameter.Data == material.GinjaTexGenParameter.Data;
 		}
 
 		/// <inheritdoc/>
@@ -356,13 +377,29 @@ namespace SA3D.Modeling.Convert.Weighted
 			hash.Add(SourceBlendMode);
 			hash.Add(DestinationBlendMode);
 			hash.Add(Attributes);
-			hash.Add(GinjaTevStageParameter.Data);
-			hash.Add(GinjaTexGenParameter.Data);
+			hash.Add(TexcoordPrecisionLevel);
+			hash.Add(PolygonAttributeCount);
+			hash.Add(AlphaMode);
+			hash.Add(DoubleSided);
+			hash.Add(UseTexture);
+			hash.Add(AnisotropicFiltering);
+			hash.Add(ClampU);
+			hash.Add(ClampV);
+			hash.Add(MirrorU);
+			hash.Add(MirrorV);
+			hash.Add(EnvironmentMapping);
+			hash.Add(IgnoreLighting);
+			hash.Add(IgnoreAmbient);
+			hash.Add(IgnoreSpecular);
+			hash.Add(FlatShading);
 			hash.Add(GinjaUseVertexColorForDiffuse);
 			hash.Add(GinjaUseVertexColorForAmbient);
 			hash.Add(GinjaTextureSlot);
+			hash.Add(GinjaTevStageParameter);
+			hash.Add(GinjaTexGenParameter);
 			return hash.ToHashCode();
 		}
+
 
 
 		/// <summary>

@@ -73,7 +73,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 
 					triangleSets.Add(triangles);
 
-					BasicMaterial material = mesh.Materials[i];
+					BasicMaterial material = mesh.Materials[meshSet.MaterialIndex];
 					materials.Add(new()
 					{
 						Diffuse = material.DiffuseColor,
@@ -95,7 +95,7 @@ namespace SA3D.Modeling.Convert.MeshConverters
 						EnvironmentMapping = material.EnvironmentMap,
 						IgnoreLighting = material.IgnoreLighting,
 						IgnoreSpecular = material.IgnoreSpecular,
-						FlatShading = material.FlatShading,
+						FlatShading = material.FlatShading
 					});
 				}
 			}

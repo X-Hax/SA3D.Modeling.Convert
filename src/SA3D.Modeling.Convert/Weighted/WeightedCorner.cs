@@ -40,6 +40,21 @@ namespace SA3D.Modeling.Convert.Weighted
 		/// </summary>
 		public Vector2 TexCoord { get; set; }
 
+		/// <summary>
+		/// First custom attribute
+		/// </summary>
+		public ushort Attributes1 { get; set; }
+
+		/// <summary>
+		/// Second custom attribute
+		/// </summary>
+		public ushort Attributes2 { get; set; }
+
+		/// <summary>
+		/// Third custom attribute
+		/// </summary>
+		public ushort Attributes3 { get; set; }
+
 
 		/// <summary>
 		/// Creates a new weighted corner.
@@ -90,13 +105,24 @@ namespace SA3D.Modeling.Convert.Weighted
 				   VertexIndex == corner.VertexIndex &&
 				   Diffuse == corner.Diffuse &&
 				   Specular == corner.Specular &&
-				   TexCoord == corner.TexCoord;
+				   TexCoord == corner.TexCoord &&
+				   Attributes1 == corner.Attributes1 &&
+				   Attributes2 == corner.Attributes2 &&
+				   Attributes3 == corner.Attributes3;
 		}
 
 		/// <inheritdoc/>
 		public override readonly int GetHashCode()
 		{
-			return System.HashCode.Combine(VertexIndex, Diffuse, Specular, TexCoord);
+			return HashCode.Combine(
+				VertexIndex,
+				Diffuse,
+				Specular,
+				TexCoord,
+				Attributes1,
+				Attributes2,
+				Attributes3
+			);
 		}
 
 		/// <inheritdoc/>

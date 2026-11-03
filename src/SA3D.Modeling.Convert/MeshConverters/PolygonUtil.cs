@@ -52,9 +52,13 @@ namespace SA3D.Modeling.Convert.MeshConverters
 				{
 					if(reverse)
 					{
-						yield return c3;
+						// I would've actually done 3, 2, 1 to match the "reverse" name,
+						// per-polygon information is stored on the current corner, so we
+						// must keep the current corner at the end of the polygon for those
+
 						yield return c2;
 						yield return c1;
+						yield return c3;
 					}
 					else
 					{
@@ -95,9 +99,13 @@ namespace SA3D.Modeling.Convert.MeshConverters
 					{
 						if(reverse)
 						{
-							yield return c3;
+							// I would've actually done 3, 2, 1 to match the "reverse" name,
+							// per-polygon information is stored on the current corner, so we
+							// must keep the current corner at the end of the polygon for those
+
 							yield return c2;
 							yield return c1;
+							yield return c3;
 						}
 						else
 						{
