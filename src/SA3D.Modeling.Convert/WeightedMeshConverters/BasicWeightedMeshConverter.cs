@@ -355,22 +355,25 @@ namespace SA3D.Modeling.Convert.WeightedMeshConverters
 						SpecularColor = material.Specular,
 						SpecularExponent = material.SpecularExponent,
 						TextureID = material.TextureIndex,
-						MipmapDistanceMultiplier = material.MipmapDistanceMultiplier,
-						SuperSample = material.AnisotropicFiltering,
-						FilterMode = material.TextureFilterMode,
-						ClampV = material.ClampV,
-						ClampU = material.ClampU,
-						MirrorV = material.MirrorV,
-						MirrorU = material.MirrorU,
-						IgnoreSpecular = material.IgnoreSpecular,
-						UseAlpha = material.AlphaMode != AlphaMode.Opaque,
-						UseTexture = material.UseTexture,
-						EnvironmentMap = material.EnvironmentMapping,
-						DoubleSided = material.DoubleSided,
-						FlatShading = material.FlatShading,
-						IgnoreLighting = material.IgnoreLighting,
-						DestinationAlpha = material.DestinationBlendMode,
-						SourceAlpha = material.SourceBlendMode
+						Attributes = new()
+						{
+							MipmapDistanceMultiplier = material.MipmapDistanceMultiplier,
+							SuperSample = material.AnisotropicFiltering,
+							FilterMode = material.TextureFilterMode,
+							ClampV = material.ClampV,
+							ClampU = material.ClampU,
+							MirrorV = material.MirrorV,
+							MirrorU = material.MirrorU,
+							IgnoreSpecular = material.IgnoreSpecular,
+							UseAlpha = material.AlphaMode != AlphaMode.Opaque,
+							UseTexture = material.UseTexture,
+							EnvironmentMap = material.EnvironmentMapping,
+							DoubleSided = material.DoubleSided,
+							FlatShading = material.FlatShading,
+							IgnoreLighting = material.IgnoreLighting,
+							DestinationAlpha = material.DestinationBlendMode,
+							SourceAlpha = material.SourceBlendMode
+						}
 					});
 				}
 
